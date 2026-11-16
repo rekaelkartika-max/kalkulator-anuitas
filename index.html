@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Anuitas & Tabel Angsuran</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 750px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-top: 0;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .hasil {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #222;
+        }
+        .table-wrapper {
+            margin-top: 20px;
+            overflow-x: auto;
+            display: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: right;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+            text-align: center;
+        }
+        td:first-child {
+            text-align: center;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Kalkulator Anuitas</h2>
+    <div class="form-grid">
+        <div>
+            <label for="pinjaman">Jumlah Pinjaman (Rp)</label>
+            <input type="number" id="pinjaman" placeholder="Contoh: 10000000">
+        </div>
+        <div>
+            <label for="bunga">Suku Bunga / Tahun (%)</label>
+            <input type="number" id="bunga" step="0.01" placeholder="Contoh: 12">
+        </div>
+        <div>
+            <label for="tenor">Tenor (Bulan)</label>
+            <input type="number" id="tenor" placeholder="Contoh: 12">
+        </div>
+    </div>
+    
+    <button onclick="hitungAnuitas()">Hitung Cicilan & Rincian</button>
+    
+    <div class="hasil" id="hasil">
+        Cicilan per Bulan: Rp 0
+    </div>
+
+    <div class="table-wrapper" id="tableWrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Bulan</th>
+                    <th>Total Cicilan</th>
+                    <th>Angsuran Pokok</th>
+                    <th>Angsuran Bunga</th>
+                    <th>Sisa Pinjaman</th>
+                </tr>
+            </thead>
+            <tbody id="tabelBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function formatRupiah(angka) {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(Math.max(0, angka));
+    }
+
+    function hitungAnuitas() {
+        const P = parseFloat(document.getElementById('pinjaman').value);
+        const bungaTahunan = parseFloat(document.getElementById('bunga').value);
+        const n = parseInt(document.getElementById('tenor').value);
+
+        if (isNaN(P) || isNaN(bungaTahunan) || isNaN(n) || P <= 0 || n <= 0) {
+            alert("Harap masukkan angka yang valid!");
+            return;
+        }
+
+        const i = (bungaTahunan / 100) / 12;
+        let anuitas = 0;
+
+        if (i === 0) {
+            anuitas = P / n;
+        } else {
+            anuitas = P * (i / (1 - Math.pow(1 + i, -n)));
+        }
+
+        document.getElementById('hasil').innerText = "Cicilan per Bulan: " + formatRupiah(anuitas);
+
+        const tabelBody = document.getElementById('tabelBody');
+        tabelBody.innerHTML = "";
+        let sisaPinjaman = P;
+
+        for (let bulan = 1; bulan <= n; bulan++) {
+            const bungaBulanIni = sisaPinjaman * i;
+            let pokokBulanIni = anuitas - bungaBulanIni;
+
+            if (bulan === n) {
+                pokokBulanIni = sisaPinjaman;
+            }
+
+            sisaPinjaman -= pokokBulanIni;
+
+            const baris = `
+                <tr>
+                    <td>${bulan}</td>
+                    <td>${formatRupiah(anuitas)}</td>
+                    <td>${formatRupiah(pokokBulanIni)}</td>
+                    <td>${formatRupiah(bungaBulanIni)}</td>
+                    <td>${formatRupiah(sisaPinjaman)}</td>
+                </tr>
+            `;
+            tabelBody.innerHTML += baris;
+        }
+
+        document.getElementById('tableWrapper').style.display = "block";
+    }
+</script>
+
+</body>
+</html>
